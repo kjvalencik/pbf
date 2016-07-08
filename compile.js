@@ -54,6 +54,10 @@ function writeMessage(ctx, options) {
             else code += 'obj.' + field.name +
                 (field.repeated ? '.push(' + readCode + ')' : ' = ' + readCode);
 
+            if (field.oneof) {
+                code += ', obj.' + field.oneof + ' = ' + JSON.stringify(field.name);
+            }
+
             code += ';\n';
         }
         code += '};\n';
