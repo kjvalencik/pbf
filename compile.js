@@ -126,7 +126,8 @@ function compileFieldRead(ctx, field) {
     case 'bool':     return prefix + 'Boolean' + suffix;
     case 'enum':
     case 'uint32':
-    case 'uint64':
+    case 'uint64':   return prefix + 'Varint' + (isPacked(field) ?
+        suffix.slice(0, -1) + ', true)' : '(true)');
     case 'int32':
     case 'int64':    return prefix + 'Varint' + suffix;
     case 'sint32':
