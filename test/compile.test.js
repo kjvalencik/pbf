@@ -133,3 +133,22 @@ test('handles all implicit default values', function(t) {
 
     t.end();
 });
+
+test('handles negative varint', function(t) {
+    var proto = resolve(path.join(__dirname, './fixtures/varint.proto'));
+    var Envelope = compile(proto).Envelope;
+    var pbf = new Pbf();
+
+    Envelope.write({
+        int: -5,
+        long: -10
+    }, pbf);
+
+    var buf = pbf.finish();
+    var data = Envelope.read(new Pbf(buf));
+
+    t.equals(data.int, -5);
+    t.equals(data.long, -10);
+
+    t.end();
+});
