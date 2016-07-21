@@ -7,7 +7,7 @@ var Tile = exports.Tile = {};
 Tile.read = function (pbf, end) {
     return pbf.readFields(Tile._readField, {layers: []}, end);
 };
-Tile._readField = function (tag, obj, pbf) {
+Tile._readField = function (type, tag, obj, pbf) {
     if (tag === 3) obj.layers.push(Tile.Layer.read(pbf, pbf.readVarint() + pbf.pos));
 };
 Tile.write = function (obj, pbf) {
@@ -28,7 +28,7 @@ Tile.Value = {};
 Tile.Value.read = function (pbf, end) {
     return pbf.readFields(Tile.Value._readField, {string_value: "", float_value: 0, double_value: 0, int_value: 0, uint_value: 0, sint_value: 0, bool_value: false}, end);
 };
-Tile.Value._readField = function (tag, obj, pbf) {
+Tile.Value._readField = function (type, tag, obj, pbf) {
     if (tag === 1) obj.string_value = pbf.readString();
     else if (tag === 2) obj.float_value = pbf.readFloat();
     else if (tag === 3) obj.double_value = pbf.readDouble();
@@ -54,11 +54,11 @@ Tile.Feature = {};
 Tile.Feature.read = function (pbf, end) {
     return pbf.readFields(Tile.Feature._readField, {id: 0, tags: [], type: 0, geometry: []}, end);
 };
-Tile.Feature._readField = function (tag, obj, pbf) {
+Tile.Feature._readField = function (type, tag, obj, pbf) {
     if (tag === 1) obj.id = pbf.readVarint();
-    else if (tag === 2) obj.tags = pbf.readPackedVarint();
+    else if (tag === 2) pbf.readPackedVarint(type, obj.tags);
     else if (tag === 3) obj.type = pbf.readVarint();
-    else if (tag === 4) obj.geometry = pbf.readPackedVarint();
+    else if (tag === 4) pbf.readPackedVarint(type, obj.geometry);
 };
 Tile.Feature.write = function (obj, pbf) {
     if (obj.id) pbf.writeVarintField(1, obj.id);
@@ -74,7 +74,7 @@ Tile.Layer = {};
 Tile.Layer.read = function (pbf, end) {
     return pbf.readFields(Tile.Layer._readField, {version: 1, name: "", features: [], keys: [], values: [], extent: 4096}, end);
 };
-Tile.Layer._readField = function (tag, obj, pbf) {
+Tile.Layer._readField = function (type, tag, obj, pbf) {
     if (tag === 15) obj.version = pbf.readVarint();
     else if (tag === 1) obj.name = pbf.readString();
     else if (tag === 2) obj.features.push(Tile.Feature.read(pbf, pbf.readVarint() + pbf.pos));

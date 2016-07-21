@@ -32,12 +32,13 @@ Pbf.prototype = {
 
         while (this.pos < end) {
             var val = this.readVarint(),
+                type = val & 0x7,
                 tag = val >> 3,
                 startPos = this.pos;
 
-            readField(tag, result, this);
+            readField(type, tag, result, this);
 
-            if (this.pos === startPos) this.skip(val);
+            if (this.pos === startPos) this.skip(type);
         }
         return result;
     },
@@ -140,54 +141,53 @@ Pbf.prototype = {
 
     // verbose for performance reasons; doesn't affect gzipped size
 
-    readPackedVarint: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedVarint: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readVarint());
         return arr;
     },
-    readPackedSVarint: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedSVarint: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readSVarint());
         return arr;
     },
-    readPackedBoolean: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedBoolean: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readBoolean());
         return arr;
     },
-    readPackedFloat: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedFloat: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readFloat());
         return arr;
     },
-    readPackedDouble: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedDouble: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readDouble());
         return arr;
     },
-    readPackedFixed32: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedFixed32: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readFixed32());
         return arr;
     },
-    readPackedSFixed32: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedSFixed32: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readSFixed32());
         return arr;
     },
-    readPackedFixed64: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedFixed64: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readFixed64());
         return arr;
     },
-    readPackedSFixed64: function() {
-        var end = this.readVarint() + this.pos, arr = [];
+    readPackedSFixed64: function(type, arr) {
+        var end = type === Pbf.Bytes ? this.readVarint() + this.pos : this.pos + 1;
         while (this.pos < end) arr.push(this.readSFixed64());
         return arr;
     },
 
-    skip: function(val) {
-        var type = val & 0x7;
+    skip: function(type) {
         if (type === Pbf.Varint) while (this.buf[this.pos++] > 0x7f) {}
         else if (type === Pbf.Bytes) this.pos = this.readVarint() + this.pos;
         else if (type === Pbf.Fixed32) this.pos += 4;

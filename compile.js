@@ -42,15 +42,19 @@ function writeMessage(ctx, options) {
         code += name + '.read = function (pbf, end) {\n';
         code += '    return pbf.readFields(' + name + '._readField, ' + compileDest(ctx) + ', end);\n';
         code += '};\n';
-        code += name + '._readField = function (tag, obj, pbf) {\n';
+        code += name + '._readField = function (type, tag, obj, pbf) {\n';
 
         for (var i = 0; i < fields.length; i++) {
             var field = fields[i];
             var readCode = compileFieldRead(ctx, field);
             code += '    ' + (i ? 'else if' : 'if') +
-                ' (tag === ' + field.tag + ') obj.' + field.name +
-                (field.repeated && !isPacked(field) ?
-                    '.push(' + readCode + ')' : ' = ' + readCode) + ';\n';
+                ' (tag === ' + field.tag + ') ';
+
+            if (field.repeated && isPacked(field)) code += readCode;
+            else code += 'obj.' + field.name +
+                (field.repeated ? '.push(' + readCode + ')' : ' = ' + readCode);
+
+            code += ';\n';
         }
         code += '};\n';
     }
@@ -104,25 +108,30 @@ function compileFieldRead(ctx, field) {
     }
 
     var prefix = 'pbf.read';
-    if (isPacked(field)) prefix += 'Packed';
+    var suffix = '()';
+
+    if (isPacked(field)) {
+        prefix += 'Packed';
+        suffix = '(type, obj.' + field.name + ')';
+    }
 
     switch (field.type) {
-    case 'string':   return prefix + 'String()';
-    case 'float':    return prefix + 'Float()';
-    case 'double':   return prefix + 'Double()';
-    case 'bool':     return prefix + 'Boolean()';
+    case 'string':   return prefix + 'String' + suffix;
+    case 'float':    return prefix + 'Float' + suffix;
+    case 'double':   return prefix + 'Double' + suffix;
+    case 'bool':     return prefix + 'Boolean' + suffix;
     case 'enum':
     case 'uint32':
     case 'uint64':
     case 'int32':
-    case 'int64':    return prefix + 'Varint()';
+    case 'int64':    return prefix + 'Varint' + suffix;
     case 'sint32':
-    case 'sint64':   return prefix + 'SVarint()';
-    case 'fixed32':  return prefix + 'Fixed32()';
-    case 'fixed64':  return prefix + 'Fixed64()';
-    case 'sfixed32': return prefix + 'SFixed32()';
-    case 'sfixed64': return prefix + 'SFixed64()';
-    case 'bytes':    return prefix + 'Bytes()';
+    case 'sint64':   return prefix + 'SVarint' + suffix;
+    case 'fixed32':  return prefix + 'Fixed32' + suffix;
+    case 'fixed64':  return prefix + 'Fixed64' + suffix;
+    case 'sfixed32': return prefix + 'SFixed32' + suffix;
+    case 'sfixed64': return prefix + 'SFixed64' + suffix;
+    case 'bytes':    return prefix + 'Bytes' + suffix;
     default:         throw new Error('Unexpected type: ' + field.type);
     }
 }

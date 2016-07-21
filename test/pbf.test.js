@@ -158,21 +158,46 @@ test('readDouble', function(t) {
 test('readPacked and writePacked', function(t) {
     var testNumbers2 = testNumbers.slice(0, 10);
 
-    ['Varint', 'SVarint', 'Float', 'Double', 'Fixed32', 'SFixed32', 'Fixed64', 'SFixed64'].forEach(function(type) {
+    function testPacked(type) {
         var buf = new Pbf();
         buf['writePacked' + type](1, testNumbers2);
         buf.finish();
-        buf.readFields(function readField(tag) {
-            if (tag === 1) t.same(buf['readPacked' + type](), testNumbers2, 'packed ' + type);
+        buf.readFields(function readField(fieldType, tag) {
+            var arr = [];
+            buf['readPacked' + type](fieldType, arr);
+            if (tag === 1) t.same(arr, testNumbers2, 'packed ' + type);
             else t.fail('wrong tag encountered: ' + tag);
         });
+    }
+
+    function testUnpacked(type) {
+        var buf = new Pbf();
+        var arr = [];
+
+        testNumbers2.forEach(function(n) {
+            buf['write' + type + 'Field'](1, n);
+        });
+
+        buf.finish();
+        buf.readFields(function readField(fieldType) {
+            buf['readPacked' + type](fieldType, arr);
+        });
+
+        t.same(arr, testNumbers2, 'packed ' + type);
+    }
+
+    ['Varint', 'SVarint', 'Float', 'Double', 'Fixed32', 'SFixed32', 'Fixed64', 'SFixed64'].forEach(function(type) {
+        testPacked(type);
+        testUnpacked(type);
     });
 
     var buf = new Pbf();
     buf.writePackedBoolean(1, testNumbers2);
     buf.finish();
-    buf.readFields(function readField(tag) {
-        if (tag === 1) t.same(buf.readPackedBoolean(),
+    buf.readFields(function readField(fieldType, tag) {
+        var arr = [];
+        buf.readPackedBoolean(Pbf.Bytes, arr);
+        if (tag === 1) t.same(arr,
             [true, false, false, true, true, true, true, true, true, true], 'packed Boolean');
         else t.fail('wrong tag encountered: ' + tag);
     });
@@ -299,7 +324,7 @@ test('readFields', function(t) {
         layerOffsets = [],
         foo = {}, res, res2, buf2;
 
-    res2 = buf.readFields(function(tag, result, buf) {
+    res2 = buf.readFields(function(fieldType, tag, result, buf) {
         if (tag === 3) layerOffsets.push(buf.pos);
         res = result;
         buf2 = buf;
@@ -320,11 +345,11 @@ test('readMessage', function(t) {
         layerNames = [],
         foo = {};
 
-    buf.readFields(function(tag) {
+    buf.readFields(function(fieldType, tag) {
         if (tag === 3) buf.readMessage(readLayer, foo);
     }, foo);
 
-    function readLayer(tag) {
+    function readLayer(fieldType, tag) {
         if (tag === 1) layerNames.push(buf.readString());
     }
 
@@ -355,7 +380,7 @@ test('field writing methods', function(t) {
 
     buf.finish();
 
-    buf.readFields(function(tag) {
+    buf.readFields(function(fieldType, tag) {
         if (tag === 1) buf.readFixed32();
         else if (tag === 2) buf.readFixed64();
         else if (tag === 3) buf.readVarint();
